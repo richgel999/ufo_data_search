@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>UFO/UAP Chronology Client-Side Search</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <div class="top-section">
+        <!-- Your title and search button go here -->
+        <h2>UFO/UAP Event Chronology Search Engine v1.46, 10/3/2023</h2>
+               
+        This is a purely <i>client-side</i> search engine. It <i>never</i> sends search requests to a server, and does not use cookies.
+        <a href="timeline.html">Go back to main timeline page.</a>
+        <button onclick="openModal()">Help/About</button>
+        <p/>
+                
+        <input type="text" id="searchTerm" placeholder="Search text" onkeyup="handleEnter(event)" style="width: 300px;">
+        <button id="searchButton" onclick="search()" disabled>Search</button>
+                        
+        <label for="searchType">Search type:</label>
+        
+        <select id="searchType">
+            <option value="0">in order</option>
+            <option value="1">any words</option>
+            <option value="2" selected>all words</option>
+            <option value="3">precise</option>
+            <option value="4">precise/ignore case</option>
+        </select>
+        
+        <label for="sourceLimit">Source:</label>
+        <select id="sourceLimit">
+        </select>
+        
+        <p/>
+                        
+        <label for="monthInput1">Month:</label>
+        <input type="number" id="monthInput1" min="0" max="12" step="1" size="4" onkeyup="handleEnter(event)">
+        
+        <label for="dayInput1">Day:</label>
+        <input type="number" id="dayInput1" min="0" max="31" step="1" size="4" onkeyup="handleEnter(event)">
+        
+        <label for="yearInput1">Year:</label>
+        <input type="number" id="yearInput1" min="0" max="3000" step="1" size="6" onkeyup="handleEnter(event)">
+                        
+        End:
+        
+        <label for="monthInput2">Month:</label>
+        <input type="number" id="monthInput2" min="0" max="12" step="1" size="4" onkeyup="handleEnter(event)">
+        
+        <label for="dayInput2">Day:</label>
+        <input type="number" id="dayInput2" min="0" max="31" step="1" size="4" onkeyup="handleEnter(event)">
+        
+        <label for="yearInput2">Year:</label>
+        <input type="number" id="yearInput2" min="0" max="3000" step="1" size="6" onkeyup="handleEnter(event)">
+        
+        <label for="maxResults">Max Results:</label>
+        <input type="number" id="maxResults" min="1" max="60000" step="250" size="6" onkeyup="handleEnter(event)" value="500">
+        
+        <input type="checkbox" id="mostRecentFirst" checked>Recent events first
+                                                                      
+    </div>
+
+                
+    <div class="main-section" id="output">
+        <!-- Your main content goes here -->
+        
+    </div>
+    
+    <div class="divider" id="divider"></div>
+
+    <div class="log-section" id="logSection">
+    </div>
+    
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()">&times;</span>
+            <h2>UFO/UAP Chronology Client-Side Search Tool</h2>
+            <p>The program itself is Copyright (C) 2022-2023 <a href="https://twitter.com/richgel999">Richard Geldreich. Jr.</a> The event copyrights vary, please see <a href="timeline.html">the list here.</a><br>
+            This program is part of the <b>E.C.H.O. (Event Chronology and Historical Overview) Project.</b></p>
+            <p/>
+            <h3>Usage Instructions</h3>
+            
+            <p>The various fields on the search page limit which records are returned in the results window. Multiple fields can be used simultanously to refine the search.</p>
+                        
+            <ul>
+                <li><b>Search Text:</b> One or more optional search phrases or words to match against the event record 
+                fields. Currently, matching always occurs against the event location, description, and all reference fields. 
+                In the non-precise search modes, case is ignored, and similar lexemes are combined using word stemming, i.e. searching 
+                for "running" will also return events containing the word "runs" or "run" etc. Additionally, in the non-precise search modes characters 
+                with <a href="https://en.wikipedia.org/wiki/Diacritic">diacritics</a> are normalized to their non-diacritic 
+                forms, i.e. searching for the words "Vallee" or "Vallée" will return the same set of records.</li>
+                <li><b>Search Type:</b> The "in order", "all words", and "any words" options select a word-oriented record text matching mode. In these modes case and diacritics are ignored, and similar word lexemes are combined.
+                In the "precise" modes, the entire input search phrase is matched against the event record fields. Only exact character by character matches are accepted in precise modes.</li>
+                <li><b>Source:</b> Limits the search to events from the selected source event collection.</li>
+                <li><b>Month/Day/Year:</b> Limits the search to a selected date, or sets the start date for a date range search. Only numeric dates are accepted, i.e. "7/8/1947" (which is Roswell Day). Partial date matching is supported. 
+                For example, if no year is entered, records for any year will be matched, but the other valid fields (month/day) will still be matched. The datch matcher is quite flexible to enable searching by specific days of the month; see Dr. Johnson's work on the <a href="https://web.archive.org/web/20160821221627/http://www.ufoinfo.com/onthisday/sametimenextyear.html">"Same Time Next Year Syndrome"</a> for more info.</li>
+                <li><b>End Month/Day/Year:</b> Sets the <b>inclusive</b> end date for a date range search. Both the begin year, month/year or month/day/year fields, and the end year, month/year or the month/day/year fields must be valid to search for records within a date range, otherwise only a single date will be searched for.</li>
+                <li><b>Max Results:</b> Limits the number of records listed in the results windows. The larger this value, the longer the search will take.</li>
+                <li><b>Recent Events First:</b> If checked the most recent events will be returned first, and more recent records will be checked before older records.</li>
+            </ul>
+            
+            <h3>Important Notes:</h3>
+            <ul>
+                <li>When date matching against single dates or date ranges, <b>note all records which overlap with the specific date or date range will be returned</b>. For example, if you search for the year 1947, event records 
+                that span from "1940-1950", or records occuring in the "1940's" or "late 1940's" will also be returned, because these events could have occured in 1947.</li>
+                <li>This is a client-side search engine. The entire event database is downloaded in a compressed form and then decompressed into memory for fast local searching. 
+                An <a href="https://en.wikipedia.org/wiki/Inverted_index">inverted search index</a> is constructed from this database when the page first loads to accelerate searches. For maximum security and privacy, searches are always 
+                locally conducted against this inverted index inside your browser. <b>Search phrases are never sent to any servers or recorded locally.</b></li>
+                <li>Most of this tool is written in <a href="https://en.wikipedia.org/wiki/C%2B%2B">C++</a>, which is compiled 
+                with <a href="https://emscripten.org/">Emscripten</a> to <a href="https://webassembly.org/">WebAssembly</a>.</li>
+            </ul>
+            
+            <!-- Add your instructions here -->
+        </div>
+    </div>
+    
+    <script>
+        const DEFAULT_MAX_RESULTS = 500;
+            
+        let domIsInitialized = false;
+        let isInitialized = false;
+        
+        document.addEventListener("DOMContentLoaded", function() {
+            console.log("DOMContentLoaded");
+            
+            domIsInitialized = true;
+        });
+    
+        var Module = 
+        {
+            print : function(text) 
+            {
+                // Handle the text from printf
+                console.log(text);
+                
+                appendToLog(text);
+            },
+        
+            onRuntimeInitialized : function() 
+            {
+                console.log("Module.onRuntimeInitialized");
+                                             
+                // Access the C++ function (or whatever you want to do)
+                // Module._printString("Hello from JavaScript!");
+                
+                Module._init();
+                
+                const numSources = Module._get_num_sources();
+                console.log('Number of sources:', numSources); 
+                
+                const sourceDropdown = document.getElementById("sourceLimit");
+                let defOptionElement = document.createElement("option");
+                defOptionElement.value = -1;
+                defOptionElement.textContent = "all";
+                sourceDropdown.appendChild(defOptionElement);
+                
+                for (let i = 0; i < numSources; i++) {
+                    let pointer = Module._get_source(i);
+                    let sourceString = Module.UTF8ToString(pointer);  // Convert memory address to string
+                    //console.log('Source:', sourceString);
+                                        
+                    let optionElement = document.createElement("option");
+                    optionElement.value = i;
+                    optionElement.textContent = sourceString;
+                    sourceDropdown.appendChild(optionElement);
+                }
+
+                // Print all the functions (methods) of the Module
+                //console.log("Exported functions/methods from Module:");
+                //Object.keys(Module).forEach(function(key) {
+                //    if (typeof Module[key] === 'function') {
+                //        console.log(key);
+                //    }
+                //});
+                
+                document.getElementById("searchButton").disabled = false;
+                
+                appendToLog("ready");
+                
+                isInitialized = true;
+                
+                const url = new URL(window.location.href);
+                const params = new URLSearchParams(url.search);
+                const qValue = params.get('q');
+                                                
+                const tParam = params.get('t');
+                
+                if (tParam != null)
+                {
+                    const tValue = parseInt(tParam);
+                    if (!isNaN(tValue) && tValue >= 0 && tValue <= 4)
+                    {
+                        document.getElementById("searchType").selectedIndex = tValue;
+                    }
+                }
+                
+                const smParam = params.get('sm');
+                if (smParam != null)
+                {
+                    const smValue = parseInt(smParam);
+                    if (!isNaN(smValue) && smValue >= 1 && smValue <= 12) 
+                    {
+                        document.getElementById('monthInput1').value = smValue;
+                    }
+                }
+                
+                const sdParam = params.get('sd');
+                if (sdParam != null)
+                {
+                    const sdValue = parseInt(sdParam);
+                    if (!isNaN(sdValue) && sdValue >= 1 && sdValue <= 31) 
+                    {
+                        document.getElementById('dayInput1').value = sdValue;
+                    }
+                }
+                
+                const syParam = params.get('sy');
+                if (syParam != null)
+                {
+                    const syValue = parseInt(syParam);
+                    if (!isNaN(syValue) && syValue >= 0 && syValue <= 3000) 
+                    {
+                        document.getElementById('yearInput1').value = syValue;
+                    }
+                }
+                
+                const emParam = params.get('em');
+                if (emParam != null)
+                {
+                    const emValue = parseInt(emParam);
+                    if (!isNaN(emValue) && emValue >= 1 && emValue <= 12) 
+                    {
+                        document.getElementById('monthInput2').value = emValue;
+                    }
+                }
+                
+                const edParam = params.get('ed');
+                if (edParam != null)
+                {
+                    const edValue = parseInt(edParam);
+                    if (!isNaN(edValue) && edValue >= 1 && edValue <= 31) 
+                    {
+                        document.getElementById('dayInput2').value = edValue;
+                    }
+                }
+                
+                const eyParam = params.get('ey');
+                if (eyParam != null)
+                {
+                    const eyValue = parseInt(eyParam);
+                    if (!isNaN(eyValue) && eyValue >= 0 && eyValue <= 3000) 
+                    {
+                        document.getElementById('yearInput2').value = eyValue;
+                    }
+                }
+                
+                const xParam = params.get('x');
+                if (xParam != null)
+                {
+                    const xValue = parseInt(xParam);
+                    if (!isNaN(xValue) && xValue >= 1 && xValue <= 60000) 
+                    {
+                        document.getElementById('maxResults').value = xValue;
+                    }
+                }
+                
+                const slParam = params.get('sl');
+                if (slParam != null)
+                {
+                    for (let i = 0; i < sourceDropdown.options.length; i++) {
+                        let optionText = sourceDropdown.options[i].text;
+                        if (optionText == slParam)
+                        {
+                            sourceDropdown.selectedIndex = i;
+                            break;
+                        }
+                    }
+                
+                }
+                
+                const mrParam = params.get('mr');
+                if (mrParam != null)
+                {
+                    const mrValue = parseInt(mrParam);
+                    if (!isNaN(mrValue))
+                    {
+                        document.getElementById('mostRecentFirst').checked = (mrValue != 0);
+                    }
+                }
+                
+                if (qValue != null && qValue != '')
+                    document.getElementById("searchTerm").value = qValue;
+
+                find(qValue);
+            }   
+        };
+        
+        const divider = document.getElementById('divider');
+        const logSection = document.querySelector('.log-section');
+        let isResizing = false;
+        let startY;
+        let startHeight;
+
+        divider.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            startY = e.clientY;
+            startHeight = logSection.offsetHeight;
+
+            document.addEventListener('mousemove', resizeLogSection);
+            document.addEventListener('mouseup', stopResize);
+
+            // Prevent text selection during resizing
+            document.body.style.userSelect = 'none';
+            document.body.style.cursor = 'ns-resize';
+        });
+
+        function resizeLogSection(e) {
+            if (isResizing) {
+                const deltaY = startY - e.clientY;
+                logSection.style.height = startHeight + deltaY + 'px';
+            }
+        }
+
+        function stopResize() {
+            isResizing = false;
+            document.removeEventListener('mousemove', resizeLogSection);
+            document.removeEventListener('mouseup', stopResize);
+
+            // Restore text selection and cursor style
+            document.body.style.userSelect = 'auto';
+            document.body.style.cursor = 'auto';
+        }
+        
+        function handleEnter(e) 
+        {
+            if (e.key === 'Enter') 
+            {
+                search();
+            }
+        }
+                        
+        function search() 
+        {
+            if (!isInitialized)
+                return;
+            
+            const searchTerm = document.getElementById("searchTerm").value;
+            find(searchTerm);
+        }
+        
+        function updateQParameter(value) 
+        {
+            let currentUrl = new URL(window.location.href);
+            
+            if ((value == null) || (value == ''))
+                currentUrl.searchParams.delete('q');
+            else
+                currentUrl.searchParams.set('q', value);
+    
+            // Update the browser URL without causing a page reload
+            history.pushState(null, null, currentUrl.toString());
+        }
+        
+        function updateCTParameters() 
+        {
+            const selectElement = document.getElementById('searchType');
+            const searchType = selectElement.options[selectElement.selectedIndex].value;
+        
+            let currentUrl = new URL(window.location.href);
+            // 2 is the default search type (all words)
+            if (searchType == 2)
+                currentUrl.searchParams.delete('t');
+            else
+                currentUrl.searchParams.set('t', searchType);
+    
+            // Update the browser URL without causing a page reload
+            history.pushState(null, null, currentUrl.toString());
+        }
+                        
+        function updateDateParams(startMonth, startDay, startYear, endMonth, endDay, endYear)
+        {
+            let currentUrl = new URL(window.location.href);
+            
+            if (startMonth == -1)
+                currentUrl.searchParams.delete('sm');
+            else
+                currentUrl.searchParams.set('sm', startMonth);
+            
+            if (startDay == -1)
+                currentUrl.searchParams.delete('sd');
+            else
+                currentUrl.searchParams.set('sd', startDay);
+                
+            if (startYear == -1)
+                currentUrl.searchParams.delete('sy');
+            else
+                currentUrl.searchParams.set('sy', startYear);
+            
+            if (endMonth == -1)
+                currentUrl.searchParams.delete('em');
+            else
+                currentUrl.searchParams.set('em', endMonth);
+            
+            if (endDay == -1)
+                currentUrl.searchParams.delete('ed');
+            else
+                currentUrl.searchParams.set('ed', endDay);
+                
+            if (endYear == -1)
+                currentUrl.searchParams.delete('ey');
+            else
+                currentUrl.searchParams.set('ey', endYear);
+                
+            // Update the browser URL without causing a page reload
+            history.pushState(null, null, currentUrl.toString());
+        }
+        
+        function updateMiscOptions(maxResults, mostRecentFirst)
+        {
+            let currentUrl = new URL(window.location.href);
+            
+            if (maxResults == DEFAULT_MAX_RESULTS)
+                currentUrl.searchParams.delete('x');
+            else
+                currentUrl.searchParams.set('x', maxResults);
+            
+            if (mostRecentFirst)
+                currentUrl.searchParams.delete('mr');
+            else
+                currentUrl.searchParams.set('mr', 0);
+            
+            // Update the browser URL without causing a page reload
+            history.pushState(null, null, currentUrl.toString());
+        }
+        
+        function updateSource(sourceStr)
+        {
+            let currentUrl = new URL(window.location.href);
+            
+            if ((sourceStr == null) || (sourceStr == ""))
+                currentUrl.searchParams.delete('sl');
+            else
+                currentUrl.searchParams.set('sl', sourceStr);
+            
+            // Update the browser URL without causing a page reload
+            history.pushState(null, null, currentUrl.toString());
+        }
+        
+        function forceRepaint(element) {
+            // This will cause a reflow, as the browser needs to return a value for offsetHeight
+            // and thus must compute and apply styles/layout
+            return element.offsetHeight;
+        }
+        
+        function forceRepaint(element) {
+            // This will cause a reflow, as the browser needs to return a value for offsetHeight
+            // and thus must compute and apply styles/layout
+            return element.offsetHeight;
+        }
+        
+        function getControlValue(controlId, min, max, defaultValue) {
+            // Get the control's value and trim whitespace
+            let inputValue = document.getElementById(controlId).value.trim();
+
+            // If the control is empty or just spaces, return the default value
+            if (inputValue === "") {
+                document.getElementById(controlId).value = "";
+                return defaultValue;
+            }
+
+            // Parse the input value to an integer
+            let parsedValue = parseInt(inputValue, 10);
+
+            // If the value is not a valid number or outside the specified range, return the default value
+            if (isNaN(parsedValue) || parsedValue < min || parsedValue > max) {
+                document.getElementById(controlId).value = "";
+                return defaultValue;
+            }
+
+            // Return the valid parsed value
+            return parsedValue;
+        }
+                        
+        function find(searchTerm)
+        {
+            if (searchTerm == null)
+                searchTerm = '';
+            
+            let startMonth = getControlValue('monthInput1', 1, 12, -1);
+            let startDay = getControlValue('dayInput1', 1, 31, -1);
+            let startYear = getControlValue('yearInput1', 0, 3000, -1);
+            
+            let endMonth = getControlValue('monthInput2', 1, 12, -1);
+            let endDay = getControlValue('dayInput2', 1, 31, -1);
+            let endYear = getControlValue('yearInput2', 0, 3000, -1);
+            
+            let maxResults = DEFAULT_MAX_RESULTS;
+            let maxResultsVal = document.getElementById('maxResults').value.trim();
+            if ((maxResultsVal==null) || (maxResultsVal === "")) {
+                document.getElementById('maxResults').value = DEFAULT_MAX_RESULTS;
+            }
+            else
+            {
+                maxResults = parseInt(maxResultsVal, 10);
+                if (isNaN(maxResults) || (maxResults < 1) || (maxResults > 60000)) {
+                    maxResults = DEFAULT_MAX_RESULTS;
+                    document.getElementById('maxResults').value = DEFAULT_MAX_RESULTS;
+                }
+            }
+            
+            let mostRecentFirst = document.getElementById("mostRecentFirst").checked ? 1 : 0;
+            let bruteForceSearch = false;
+            
+            updateQParameter(searchTerm);
+            updateCTParameters();
+            updateDateParams(startMonth, startDay, startYear, endMonth, endDay, endYear);
+            updateMiscOptions(maxResults, mostRecentFirst);
+                                                            
+            const selectElement = document.getElementById('searchType');
+            const searchType = selectElement.options[selectElement.selectedIndex].value;
+            
+            //                                  ret           pStr     search_type startm    startd    starty      endm      endd      endy       maxresults  bruteforce source    mostrecentfirst
+            var findFunc = Module.cwrap('find', ['string'], ['string', 'number',   'number', 'number', 'number',   'number', 'number', 'number',  'number',   'number',  'string', 'number' ]);
+            var getNumResultsFunc = Module.cwrap('get_num_results', 'number', []);    
+            
+            const output = document.getElementById("output");
+            output.innerHTML = ""; // Clear previous search results
+            
+            appendToLog("search: " + searchTerm);
+            
+            document.getElementById("searchButton").disabled = true;
+            document.body.style.cursor = 'wait';
+            
+            forceRepaint(document.body);
+            
+            let sourceDropdown = document.getElementById("sourceLimit");
+            let sourceStr = "";
+            if (sourceDropdown.selectedIndex > 0) 
+            {
+                let pointer = Module._get_source(sourceDropdown.selectedIndex - 1);
+                sourceStr = Module.UTF8ToString(pointer);  // Convert memory address to string
+            }
+            updateSource(sourceStr);
+            
+            setTimeout(() => {
+                const messagePtr = findFunc(searchTerm, searchType, startMonth, startDay, startYear,  endMonth, endDay, endYear, maxResults, bruteForceSearch, sourceStr, mostRecentFirst);
+                
+                document.body.style.cursor = 'default';
+                document.getElementById("searchButton").disabled = false;
+                
+                const message = Module.UTF8ToString(messagePtr); // Convert pointer to JavaScript string
+                
+                // Convert markdown to HTML using marked
+                let htmlContent = marked.parse(message);
+                
+                document.getElementById('output').innerHTML = htmlContent;
+                                        
+                var numResults = getNumResultsFunc();
+                appendToLog("total results: " + numResults);
+                if (numResults == maxResults)
+                    appendToLog("(at max results - there are likely more)");
+    
+            }, 30);
+  
+        }
+               
+        function appendToLog(message) 
+        {
+            const logSection = document.querySelector(".log-section");
+            
+            // Create a new span element for the message
+            const messageElement = document.createElement("span");
+            messageElement.textContent = message;
+
+            // Append the new message and a line break to the log section
+            logSection.appendChild(messageElement);
+            logSection.appendChild(document.createElement("br"));
+
+            // Scroll to the bottom of the log section to ensure the new message is visible
+            logSection.scrollTop = logSection.scrollHeight;
+        }
+        
+         // Open the modal
+        function openModal() {
+            document.getElementById('myModal').style.display = 'block';
+        }
+
+        // Close the modal
+        function closeModal() {
+            var modal = document.getElementById('myModal');
+            modal.style.display = 'none';
+        }
+        
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' || event.keyCode === 27) {
+                closeModal();
+            }
+        });
+                
+    </script>
+    
+    <script src="cmodule.js"></script>
+    
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            overflow: hidden; /* Hide vertical scrollbar */
+            overflow-x: hidden; /* Hide horizontal scrollbar */
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-section {
+            padding: 10px;
+            background-color: #d5d5d5;
+            box-sizing: border-box;
+        }
+
+        .main-section {
+            flex: 1;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .divider {
+            cursor: ns-resize; /* Use the vertical resize cursor */
+            background-color: #ccc;
+            width: 100%;
+            height: 10px;
+        }
+               
+        .log-section {
+            background-color: #e0e0e0;
+            /* min-height: 1vh; */
+            /* max-height: 15vh; */ /* Ensures that the log section doesn't grow beyond this height */
+            /* padding: 10px; */
+            /* box-sizing: border-box; */
+            overflow-y: auto;  /* Makes the log section scrollable when content overflows */
+            font-family: monospace;
+            /* resize: vertical; */
+            /* overflow: auto; */
+            height: 2vh;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 1;
+        }
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #f4f4f4;
+            padding: 20px;
+            width: 60%;
+            border-radius: 8px;
+            
+            max-height: 90vh;
+            overflow-y: auto;
+            padding-bottom: 10px;
+        }
+        .close-button {
+            color: #333;
+            float: right;
+            font-size: 28px;
+            cursor: pointer;
+        }
+        
+    </style>
+            
+</body>
+
+</html>
