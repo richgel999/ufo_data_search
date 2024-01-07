@@ -353,39 +353,28 @@
             find(searchTerm);
         }
         
-        function updateQParameter(value) 
+        function updateQParameter(currentUrl, value)
         {
-            let currentUrl = new URL(window.location.href);
-            
             if ((value == null) || (value == ''))
                 currentUrl.searchParams.delete('q');
             else
                 currentUrl.searchParams.set('q', value);
-    
-            // Update the browser URL without causing a page reload
-            history.pushState(null, null, currentUrl.toString());
         }
         
-        function updateCTParameters() 
+        function updateCTParameters(currentUrl)
         {
             const selectElement = document.getElementById('searchType');
             const searchType = selectElement.options[selectElement.selectedIndex].value;
         
-            let currentUrl = new URL(window.location.href);
             // 2 is the default search type (all words)
             if (searchType == 2)
                 currentUrl.searchParams.delete('t');
             else
                 currentUrl.searchParams.set('t', searchType);
-    
-            // Update the browser URL without causing a page reload
-            history.pushState(null, null, currentUrl.toString());
         }
                         
-        function updateDateParams(startMonth, startDay, startYear, endMonth, endDay, endYear)
+        function updateDateParams(currentUrl, startMonth, startDay, startYear, endMonth, endDay, endYear)
         {
-            let currentUrl = new URL(window.location.href);
-            
             if (startMonth == -1)
                 currentUrl.searchParams.delete('sm');
             else
@@ -415,15 +404,10 @@
                 currentUrl.searchParams.delete('ey');
             else
                 currentUrl.searchParams.set('ey', endYear);
-                
-            // Update the browser URL without causing a page reload
-            history.pushState(null, null, currentUrl.toString());
         }
         
-        function updateMiscOptions(maxResults, mostRecentFirst)
+        function updateMiscOptions(currentUrl, maxResults, mostRecentFirst)
         {
-            let currentUrl = new URL(window.location.href);
-            
             if (maxResults == DEFAULT_MAX_RESULTS)
                 currentUrl.searchParams.delete('x');
             else
@@ -433,22 +417,14 @@
                 currentUrl.searchParams.delete('mr');
             else
                 currentUrl.searchParams.set('mr', 0);
-            
-            // Update the browser URL without causing a page reload
-            history.pushState(null, null, currentUrl.toString());
         }
         
-        function updateSource(sourceStr)
+        function updateSource(currentUrl, sourceStr)
         {
-            let currentUrl = new URL(window.location.href);
-            
             if ((sourceStr == null) || (sourceStr == ""))
                 currentUrl.searchParams.delete('sl');
             else
                 currentUrl.searchParams.set('sl', sourceStr);
-            
-            // Update the browser URL without causing a page reload
-            history.pushState(null, null, currentUrl.toString());
         }
         
         function forceRepaint(element) {
@@ -515,12 +491,12 @@
             
             let mostRecentFirst = document.getElementById("mostRecentFirst").checked ? 1 : 0;
             let bruteForceSearch = false;
-            
-            updateQParameter(searchTerm);
-            updateCTParameters();
-            updateDateParams(startMonth, startDay, startYear, endMonth, endDay, endYear);
-            updateMiscOptions(maxResults, mostRecentFirst);
-                                                            
+            let currentUrl = new URL(window.location.href);
+            updateQParameter(currentUrl, searchTerm);
+            updateCTParameters(currentUrl);
+            updateDateParams(currentUrl, startMonth, startDay, startYear, endMonth, endDay, endYear);
+            updateMiscOptions(currentUrl, maxResults, mostRecentFirst);
+
             const selectElement = document.getElementById('searchType');
             const searchType = selectElement.options[selectElement.selectedIndex].value;
             
@@ -545,7 +521,9 @@
                 let pointer = Module._get_source(sourceDropdown.selectedIndex - 1);
                 sourceStr = Module.UTF8ToString(pointer);  // Convert memory address to string
             }
-            updateSource(sourceStr);
+            updateSource(currentUrl, sourceStr);
+            // Update the browser URL without causing a page reload
+            history.pushState(null, null, currentUrl.toString());
             
             setTimeout(() => {
                 const messagePtr = findFunc(searchTerm, searchType, startMonth, startDay, startYear,  endMonth, endDay, endYear, maxResults, bruteForceSearch, sourceStr, mostRecentFirst);
